@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/saurabhraut1212/students_api_golang/internal/config"
+	"github.com/saurabhraut1212/students_api_golang/internal/http/handlers/student"
 )
 
 func main() {
@@ -22,9 +23,7 @@ func main() {
 	//setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to students api"))
-	})
+	router.HandleFunc("POST /api/students", student.New())
 
 	//setup server
 
@@ -32,19 +31,23 @@ func main() {
 		Addr:    cfg.Addr,
 		Handler: router,
 	}
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
+	slog.Info("Server started")
+
+	done := make(chan os.Signal, 1) //this channel is for listen os signals
+
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM) //wacthes ctrl+c ,kill command
+
+	go func() { //run server in a goroutine
 		err := server.ListenAndServe()
 		if err != nil {
 			log.Fatal("Failed to start server")
 
 		}
 	}()
-	<-done
+	<-done //Main goroutine waits until a shutdown signal (Ctrl+C) is received.
 
 	slog.Info("Shutting down the server")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) //Creates a context with timeout → gives the server 5 seconds to shutdown gracefully before force exit.
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
