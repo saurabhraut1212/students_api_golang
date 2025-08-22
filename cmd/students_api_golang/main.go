@@ -12,6 +12,7 @@ import (
 
 	"github.com/saurabhraut1212/students_api_golang/internal/config"
 	"github.com/saurabhraut1212/students_api_golang/internal/http/handlers/student"
+	"github.com/saurabhraut1212/students_api_golang/internal/storage/sqlite"
 )
 
 func main() {
@@ -20,10 +21,17 @@ func main() {
 	cfg := config.MustLoad()
 	//database setup
 
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("Storage initialized", slog.String("env", cfg.Env))
+
 	//setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students", student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
 
 	//setup server
 
